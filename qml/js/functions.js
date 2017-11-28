@@ -1,3 +1,41 @@
+/*
+    Copyright (C) 2017 Sebastian J. Wolf
+
+    This file is part of Piepmatz.
+
+    Piepmatz is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Piepmatz is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Piepmatz. If not, see <http://www.gnu.org/licenses/>.
+*/
+function updatePiepmatz() {
+    if (typeof homeView !== "undefined") {
+        homeView.reloading = true;
+        notificationsColumn.updateInProgress = true;
+    }
+    if (typeof searchColumn !== "undefined") {
+        if (searchField.text !== "") {
+            console.log("Updating search as well...");
+            searchColumn.tweetSearchInTransition = true;
+            searchColumn.usersSearchInTransition = true;
+            searchTimer.stop();
+            searchTimer.start();
+        }
+    }
+    timelineModel.update();
+    mentionsModel.update();
+    directMessagesModel.update();
+    accountModel.verifyCredentials();
+}
+
 function findHiResImage(url) {
     var suffixIndex = url.indexOf("_normal");
     if (suffixIndex !== -1) {
@@ -21,10 +59,9 @@ function getValidDate(twitterDate) {
 }
 
 function getTweetId(url) {
-    var regex = /twitter\.com\/\w+\/status\/(\d+)/g;
-    var matchingResult = regex.exec(url);
-    if (matchingResult !== null) {
-        return matchingResult[1];
+    // The QML JS engine sometimes fails to match regex /twitter\.com\/\w+\/status\/(\d+)/g correctly. Therefore doing it differently now...
+    if (url.indexOf("twitter.com/") !== -1 && url.indexOf("/status/") !== -1) {
+        return url.substring(url.indexOf("/status/") + 8);
     }
     return null;
 }
@@ -48,10 +85,24 @@ function enhanceDescription(description) {
     var httpRegex = /\s+(http[s]*\:\/\/\S+)/g;
     description = description.replace(httpRegex, " <a href=\"$1\">$1</a>");
 
+    var userRegex = /\s+(\@(\w+))/g;
+    description = description.replace(userRegex, " <a href=\"profile://$2\">$1</a>");
+
+    var tagRegex = /\s+(\#\w+)/g;
+    description = description.replace(tagRegex, " <a href=\"tag://$1\">$1</a>");
+
     return description;
 }
 
+function enhanceSimpleText(tweetText, entities) {
+    return enhanceTweetText(tweetText, entities, null, false);
+}
+
 function enhanceText(tweetText, entities, extendedEntities) {
+    return enhanceTweetText(tweetText, entities, extendedEntities, true);
+}
+
+function enhanceTweetText(tweetText, entities, extendedEntities, withReferenceUrl) {
     var replacements = [];
 
     // URLs
@@ -65,6 +116,11 @@ function enhanceText(tweetText, entities, extendedEntities) {
         } else {
             var url_replacement = "<a href=\"" + entities.urls[i].expanded_url + "\">" + entities.urls[i].display_url + "</a>";
             replacements.push(new Replacement(entities.urls[i].indices[0], entities.urls[i].indices[1], entities.urls[i].url, url_replacement));
+            // TODO: Could fail in case of multiple references. Well, let's see what happens :D
+            if (withReferenceUrl) {
+                referenceUrl = entities.urls[i].expanded_url;
+                twitterApi.getOpenGraph(entities.urls[i].expanded_url);
+            }
         }
     }
     // Remove media links - will become own QML entities
@@ -195,4 +251,113 @@ function getVideoHeight(videoWidth, tweet) {
         }
     }
     return 1;
+}
+
+function getVideoOriginalHeight(tweet) {
+    if (tweet.extended_entities) {
+        for (var i = 0; i < tweet.extended_entities.media.length; i++ ) {
+            if (tweet.extended_entities.media[i].type === "video" || tweet.extended_entities.media[i].type === "animated_gif") {
+                return tweet.extended_entities.media[i].video_info.aspect_ratio[1];
+            }
+        }
+    }
+    return 1;
+}
+
+function getVideoOriginalWidth(tweet) {
+    if (tweet.extended_entities) {
+        for (var i = 0; i < tweet.extended_entities.media.length; i++ ) {
+            if (tweet.extended_entities.media[i].type === "video" || tweet.extended_entities.media[i].type === "animated_gif") {
+                return tweet.extended_entities.media[i].video_info.aspect_ratio[0];
+            }
+        }
+    }
+    return 1;
+}
+
+function getTweetUrl(tweetModel) {
+    var statusUrl = "https://twitter.com/";
+    if (tweetModel.retweeted_status) {
+        statusUrl += tweetModel.retweeted_status.user.screen_name + "/status/" + tweetModel.retweeted_status.id_str;
+    } else {
+        statusUrl += tweetModel.user.screen_name + "/status/" + tweetModel.id_str;
+    }
+    console.log(statusUrl);
+    return statusUrl;
+}
+
+function getUserUrl(userModel) {
+    var userUrl = "https://twitter.com/" + userModel.screen_name;
+    console.log(userUrl);
+    return userUrl;
+}
+
+function getRetweetCount(tweetModel) {
+    return tweetModel.retweeted_status ? ( tweetModel.retweeted_status.retweet_count ? tweetModel.retweeted_status.retweet_count : " " ) : ( tweetModel.retweet_count ? tweetModel.retweet_count : " " )
+}
+
+function getFavoritesCount(tweetModel) {
+    return tweetModel.retweeted_status ? ( tweetModel.retweeted_status.favorite_count ? tweetModel.retweeted_status.favorite_count : " " ) : ( tweetModel.favorite_count ? tweetModel.favorite_count : " " );
+}
+
+function getShortenedCount(count) {
+    if (count >= 1000000) {
+        return qsTr("%1M").arg((count / 1000000).toLocaleString(Qt.locale(), 'f', 0));
+    } else if (count >= 1000 ) {
+        return qsTr("%1K").arg((count / 1000).toLocaleString(Qt.locale(), 'f', 0));
+    } else {
+        return count;
+    }
+}
+
+function getTimeRemaining(count) {
+    if (count >= 172800) {
+        return qsTr("the next %1 days").arg((count / 86400).toLocaleString(Qt.locale(), 'f', 0));
+    } else if (count >= 86400) {
+        return qsTr("the next day");
+    } else if (count >= 7200 ) {
+        return qsTr("the next %1 hours").arg((count / 3600).toLocaleString(Qt.locale(), 'f', 0));
+    } if (count >= 3600 ) {
+        return qsTr("the next hour");
+    } else if (count >= 120 ) {
+        return qsTr("the next %1 minutes").arg((count / 60).toLocaleString(Qt.locale(), 'f', 0));
+    } else {
+        return qsTr("the next minute");
+    }
+}
+
+function containsPlace(tweetModel) {
+    if (tweetModel.retweeted_status) {
+        if (tweetModel.retweeted_status.place) {
+            return true;
+        }
+    } else {
+        if (tweetModel.place) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function getTweetVideoUrl(tweet) {
+    if (tweet.extended_entities) {
+        for (var i = 0; i < tweet.extended_entities.media.length; i++ ) {
+            if (tweet.extended_entities.media[i].type === "video" || tweet.extended_entities.media[i].type === "animated_gif") {
+                for (var j = 0; j < tweet.extended_entities.media[i].video_info.variants.length; j++) {
+                    if (tweet.extended_entities.media[i].video_info.variants[j].content_type === "video/mp4") {
+                        return tweet.extended_entities.media[i].video_info.variants[j].url;
+                    }
+                }
+            }
+        }
+    }
+    return "";
+}
+
+function getMediaFileName(tweet, mediaUrl) {
+    var fileNamePrefix = tweet.user.screen_name + "_" + Qt.formatDate(Functions.getValidDate(tweet.retweeted_status ? tweet.retweeted_status.created_at : tweet.created_at), "yyyy-MM-dd");
+    if (tweet.retweeted_status) {
+        fileNamePrefix = tweet.retweeted_status.user.screen_name + "_" + Qt.formatDate(Functions.getValidDate(tweet.retweeted_status ? tweet.retweeted_status.created_at : tweet.created_at), "yyyy-MM-dd");
+    }
+    return fileNamePrefix + "_" + mediaUrl.substring(mediaUrl.lastIndexOf("/") + 1);
 }

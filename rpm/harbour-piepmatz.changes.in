@@ -7,3 +7,42 @@
 
 * Sun Apr 02 2017 Sebastian Wolf <sebastian@ygriega.de> 0.1
 - First public release
+
+* Sat Apr 08 2017 Sebastian Wolf <sebastian@ygriega.de> 0.1.1
+- Included localizations for Spanish, Russian, Dutch and French
+- Minor bugfixes
+
+* Wed May 03 2017 Sebastian Wolf <sebastian@ygriega.de> 0.2
+- Pinch-to-zoom for images
+- Attach up to 4 images to a tweet
+- Link preview powered by Open Graph (for Instagram, Facebook, news sites etc.)
+- Open tweet in browser
+
+* Sun May 21 2017 Sebastian Wolf <sebastian@ygriega.de> 0.3
+- Search for users
+- Display user lists for followers & following
+- Direct messages (up to 10.000 characters)
+- System notifications for new messages and mentions
+
+* Sat Jun 10 2017 Sebastian Wolf <sebastian@ygriega.de> 0.4
+- Retweet with comment
+- Load more tweets in timeline
+- Improved video playback (now with remaining time)
+- Better link preview
+- Bugfix: Crash/Freeze on scrolling
+- Bugfix: Error loading direct messages with suspended user
+
+* Wed Nov 08 2017 Sebastian Wolf <sebastian@ygriega.de> 0.4.280
+- Use 280 characters for a tweet
+- Bugfix: Bottom push-up menu can't scroll infinitely anymore
+
+* Tue Nov 21 2017 Sebastian Wolf <sebastian@ygriega.de> 0.5
+- Show user's favorites in profile
+- Standalone tweet page incl. geotagging information
+- New picture slideshow
+- @-mentioning support during tweet creation
+- Local trends (see popular hash tags and keywords from your area in search)
+- Copy tweet/user URL to clipboard
+- Geotagging for tweets (needs to be enabled in your Twitter privacy settings at https://twitter.com/settings/safety)
+- A lot of bugfixes
+- Probably a lot of new bugs

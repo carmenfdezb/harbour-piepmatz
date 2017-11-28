@@ -1,12 +1,30 @@
+/*
+    Copyright (C) 2017 Sebastian J. Wolf
+
+    This file is part of Piepmatz.
+
+    Piepmatz is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Piepmatz is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Piepmatz. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "searchmodel.h"
 
 SearchModel::SearchModel(TwitterApi *twitterApi)
+    : searchInProgress(false)
 {
     this->twitterApi = twitterApi;
-    searchInProgress = false;
 
-    connect(twitterApi, SIGNAL(searchTweetsError(QString)), this, SLOT(handleSearchTweetsError(QString)));
-    connect(twitterApi, SIGNAL(searchTweetsSuccessful(QVariantList)), this, SLOT(handleSearchTweetsSuccessful(QVariantList)));
+    connect(twitterApi, &TwitterApi::searchTweetsError, this, &SearchModel::handleSearchTweetsError);
+    connect(twitterApi, &TwitterApi::searchTweetsSuccessful, this, &SearchModel::handleSearchTweetsSuccessful);
 }
 
 int SearchModel::rowCount(const QModelIndex &) const

@@ -13,14 +13,15 @@ Name:       harbour-piepmatz
 %{!?qtc_make:%define qtc_make make}
 %{?qtc_builddir:%define _builddir %qtc_builddir}
 Summary:    Piepmatz is a Twitter client for Sailfish OS
-Version:    0.1
-Release:    19
+Version:    0.6
+Release:    1
 Group:      Qt/Qt
 License:    LICENSE
 URL:        http://wunderfitz.org/
 Source0:    %{name}-%{version}.tar.bz2
 Source100:  harbour-piepmatz.yaml
 Requires:   sailfishsilica-qt5 >= 0.10.9
+Requires:   libcrypto.so.10
 BuildRequires:  pkgconfig(sailfishapp) >= 1.0.2
 BuildRequires:  pkgconfig(Qt5Core)
 BuildRequires:  pkgconfig(Qt5Qml)

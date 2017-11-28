@@ -1,8 +1,21 @@
 /*
-  Copyright (C) 2017 Sebastian J. Wolf
+    Copyright (C) 2017 Sebastian J. Wolf
+
+    This file is part of Piepmatz.
+
+    Piepmatz is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Piepmatz is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Piepmatz. If not, see <http://www.gnu.org/licenses/>.
 */
-
-
 import QtQuick 2.0
 import Sailfish.Silica 1.0
 import "../js/functions.js" as Functions
@@ -39,7 +52,7 @@ Page {
             }
 
             Label {
-                text: "Piepmatz 0.1"
+                text: "Piepmatz 0.6"
                 horizontalAlignment: Text.AlignHCenter
                 font.pixelSize: Theme.fontSizeExtraLarge
                 anchors {
@@ -135,6 +148,31 @@ Page {
             }
 
             SectionHeader {
+                text: "Wagnis"
+            }
+
+            Label {
+                id: wagnisIdLabel
+                text: qsTr("Wagnis ID: ") + wagnis.getId()
+                font.pixelSize: Theme.fontSizeSmall
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                }
+                visible: false
+            }
+            Button {
+                id: showWagnisIdButton
+                text: qsTr("Show Wagnis ID")
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                }
+                onClicked: {
+                    showWagnisIdButton.visible = false;
+                    wagnisIdLabel.visible = true;
+                }
+            }
+
+            SectionHeader {
                 text: qsTr("Credits")
             }
 
@@ -180,6 +218,32 @@ Page {
                 linkColor: Theme.highlightColor
 
                 onLinkActivated: Qt.openUrlExternally("https://github.com/twitter/twitter-text")
+            }
+
+            Text {
+                x: Theme.horizontalPageMargin
+                width: parent.width  - ( 2 * Theme.horizontalPageMargin )
+                text: qsTr("Piepmatz uses ipinfo.io and (if available) the GPS receiver of your device to determine your location. Your location is used to retrieve trends and - only if you explicitly agree - as attachment to your tweets. If you want to use your location in tweets, please ensure to have it enabled in your <a href=\"https://twitter.com/settings/safety\">Twitter settings</a>.")
+                font.pixelSize: Theme.fontSizeExtraSmall
+                linkColor: Theme.highlightColor
+                color: Theme.primaryColor
+                wrapMode: Text.Wrap
+                textFormat: Text.StyledText
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                }
+                onLinkActivated: Qt.openUrlExternally(link)
+            }
+
+            Text {
+                text: "<a href=\"https://ipinfo.io\">" + qsTr("Open ipinfo.io") + "</a>"
+                anchors {
+                    horizontalCenter: parent.horizontalCenter
+                }
+                font.pixelSize: Theme.fontSizeSmall
+                linkColor: Theme.highlightColor
+
+                onLinkActivated: Qt.openUrlExternally("https://ipinfo.io")
             }
 
             Label {

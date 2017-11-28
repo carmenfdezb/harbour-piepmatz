@@ -14,9 +14,12 @@ TARGET = harbour-piepmatz
 
 CONFIG += sailfishapp
 
-QT += core
+QT += core dbus positioning
+
+LIBS += -lcrypto
 
 include(src/o2/o2.pri)
+include(src/wagnis/wagnis.pri)
 
 SOURCES += src/harbour-piepmatz.cpp \
     src/accountmodel.cpp \
@@ -24,7 +27,16 @@ SOURCES += src/harbour-piepmatz.cpp \
     src/timelinemodel.cpp \
     src/covermodel.cpp \
     src/searchmodel.cpp \
-    src/mentionsmodel.cpp
+    src/mentionsmodel.cpp \
+    src/imagesmodel.cpp \
+    src/imagessearchworker.cpp \
+    src/imageresponsehandler.cpp \
+    src/directmessagesmodel.cpp \
+    src/searchusersmodel.cpp \
+    src/imageprocessor.cpp \
+    src/trendsmodel.cpp \
+    src/locationinformation.cpp \
+    src/downloadresponsehandler.cpp
 
 OTHER_FILES += qml/harbour-piepmatz.qml \
     qml/pages/CoverPage.qml \
@@ -38,7 +50,17 @@ SAILFISHAPP_ICONS = 86x86 108x108 128x128 256x256
 
 CONFIG += sailfishapp_i18n
 
-TRANSLATIONS += translations/harbour-piepmatz-de.ts
+TRANSLATIONS += translations/harbour-piepmatz-de.ts \
+                translations/harbour-piepmatz-es.ts \
+                translations/harbour-piepmatz-fi.ts \
+                translations/harbour-piepmatz-fr.ts \
+                translations/harbour-piepmatz-it.ts \
+                translations/harbour-piepmatz-ja.ts \
+                translations/harbour-piepmatz-nl.ts \
+                translations/harbour-piepmatz-pl.ts \
+                translations/harbour-piepmatz-ru.ts \
+                translations/harbour-piepmatz-sl.ts \
+                translations/harbour-piepmatz-sv.ts
 
 gui.files = qml
 gui.path = /usr/share/$${TARGET}
@@ -72,4 +94,16 @@ HEADERS += \
     src/timelinemodel.h \
     src/covermodel.h \
     src/searchmodel.h \
-    src/mentionsmodel.h
+    src/mentionsmodel.h \
+    src/imagesmodel.h \
+    src/imagessearchworker.h \
+    src/imageresponsehandler.h \
+    src/directmessagesmodel.h \
+    src/searchusersmodel.h \
+    src/imageprocessor.h \
+    src/trendsmodel.h \
+    src/locationinformation.h \
+    src/downloadresponsehandler.h
+
+DISTFILES += \
+    qml/pages/VideoPage.qml

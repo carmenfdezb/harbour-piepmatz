@@ -1,17 +1,38 @@
+/*
+    Copyright (C) 2017 Sebastian J. Wolf
+
+    This file is part of Piepmatz.
+
+    Piepmatz is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Piepmatz is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Piepmatz. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "timelinemodel.h"
 
+#include <QListIterator>
+
+const char SETTINGS_CURRENT_TWEET[] = "tweets/currentId";
+
 TimelineModel::TimelineModel(TwitterApi *twitterApi)
+    : coverModel(new CoverModel(this)), settings("harbour-piepmatz", "settings")
 {
     this->twitterApi = twitterApi;
-    this->coverModel = new CoverModel();
 
-    connect(twitterApi, SIGNAL(homeTimelineError(QString)), this, SLOT(handleHomeTimelineError(QString)));
-    connect(twitterApi, SIGNAL(homeTimelineSuccessful(QVariantList)), this, SLOT(handleHomeTimelineSuccessful(QVariantList)));
+    connect(twitterApi, &TwitterApi::homeTimelineError, this, &TimelineModel::handleHomeTimelineError);
+    connect(twitterApi, &TwitterApi::homeTimelineSuccessful, this, &TimelineModel::handleHomeTimelineSuccessful);
 }
 
 TimelineModel::~TimelineModel()
 {
-    delete this->coverModel;
 }
 
 int TimelineModel::rowCount(const QModelIndex &) const
@@ -32,23 +53,67 @@ QVariant TimelineModel::data(const QModelIndex &index, int role) const
 
 void TimelineModel::update()
 {
+    qDebug() << "TimelineModel::update";
     emit homeTimelineStartUpdate();
     twitterApi->homeTimeline();
 }
 
-void TimelineModel::handleHomeTimelineSuccessful(const QVariantList &result)
+void TimelineModel::loadMore()
+{
+    qDebug() << "TimelineModel::loadMore";
+    emit homeTimelineStartUpdate();
+    QString maxId = "";
+    if (!timelineTweets.isEmpty()) {
+        QVariantMap lastItem = timelineTweets.last().toMap();
+        maxId = lastItem.value("id_str").toString();
+    }
+    twitterApi->homeTimeline(maxId);
+}
+
+void TimelineModel::setCurrentTweetId(const QString &tweetId)
+{
+    qDebug() << "TimelineModel::setCurrentTweetId" << tweetId;
+    settings.setValue(SETTINGS_CURRENT_TWEET, tweetId);
+}
+
+void TimelineModel::handleHomeTimelineSuccessful(const QVariantList &result, const bool incrementalUpdate)
 {
     qDebug() << "TimelineModel::handleHomeTimelineSuccessful";
     beginResetModel();
-    timelineTweets.clear();
-    timelineTweets.append(result);
+    if (incrementalUpdate) {
+        qDebug() << "User wanted to load more tweets for the timeline";
+        if (result.size() > 1) {
+            QVariantList incrementalUpdateResult = result;
+            incrementalUpdateResult.removeFirst();
+            timelineTweets.append(incrementalUpdateResult);
+        } else {
+            emit homeTimelineEndReached();
+        }
+    } else {
+        qDebug() << "Complete timeline update";
+        if (result.isEmpty()) {
+            emit homeTimelineEndReached();
+        } else {
+            timelineTweets.clear();
+            timelineTweets.append(result);
+        }
+    }
     endResetModel();
 
-    QVariantList coverList;
-    int maxTweets = 6;
-    if (timelineTweets.size() < maxTweets) {
-        maxTweets = timelineTweets.size();
+    QListIterator<QVariant> tweetIterator(timelineTweets);
+    int i = 0;
+    int modelIndex = 0;
+    QString lastTweetId = settings.value(SETTINGS_CURRENT_TWEET).toString();
+    while (tweetIterator.hasNext()) {
+        QMap<QString,QVariant> singleTweet = tweetIterator.next().toMap();
+        if (singleTweet.value("id_str").toString() == lastTweetId) {
+            modelIndex = i;
+        }
+        i++;
     }
+
+    QVariantList coverList;
+    int maxTweets = qMin(6, timelineTweets.size());
     for (int i = 0; i < maxTweets; i++) {
         QMap<QString, QVariant> coverTweet;
         QMap<QString, QVariant> originalTweet = timelineTweets.at(i).toMap();
@@ -63,7 +128,7 @@ void TimelineModel::handleHomeTimelineSuccessful(const QVariantList &result)
     }
     this->coverModel->setCoverTweets(coverList);
 
-    emit homeTimelineUpdated();
+    emit homeTimelineUpdated(modelIndex);
 }
 
 void TimelineModel::handleHomeTimelineError(const QString &errorMessage)

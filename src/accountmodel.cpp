@@ -1,3 +1,21 @@
+/*
+    Copyright (C) 2017 Sebastian J. Wolf
+
+    This file is part of Piepmatz.
+
+    Piepmatz is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Piepmatz is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Piepmatz. If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "accountmodel.h"
 #include "o1twitterglobals.h"
 #include "o0globals.h"
@@ -8,11 +26,12 @@
 #include <QUuid>
 
 AccountModel::AccountModel()
+    : networkConfigurationManager(new QNetworkConfigurationManager(this))
+    , o1(new O1Twitter(this))
+    , manager(new QNetworkAccessManager(this))
 {
-    networkConfigurationManager = new QNetworkConfigurationManager(this);
     obtainEncryptionKey();
 
-    o1 = new O1Twitter(this);
     O0SettingsStore *settings = new O0SettingsStore(encryptionKey);
     o1->setStore(settings);
     o1->setClientId(TWITTER_CLIENT_ID);
@@ -22,12 +41,13 @@ AccountModel::AccountModel()
     connect(o1, SIGNAL(linkingFailed()), this, SLOT(handleLinkingFailed()));
     connect(o1, SIGNAL(linkingSucceeded()), this, SLOT(handleLinkingSucceeded()));
 
-    manager = new QNetworkAccessManager(this);
     requestor = new O1Requestor(manager, o1, this);
-    twitterApi = new TwitterApi(requestor, this);
+    wagnis = new Wagnis(manager, "harbour-piepmatz", "0.6", this);
+    twitterApi = new TwitterApi(requestor, manager, wagnis, this);
+    locationInformation = new LocationInformation(this);
 
-    connect(twitterApi, SIGNAL(verifyCredentialsError(QString)), this, SLOT(handleVerifyCredentialsError(QString)));
-    connect(twitterApi, SIGNAL(verifyCredentialsSuccessful(QVariantMap)), this, SLOT(handleVerifyCredentialsSuccessful(QVariantMap)));
+    connect(twitterApi, &TwitterApi::verifyCredentialsError, this, &AccountModel::handleVerifyCredentialsError);
+    connect(twitterApi, &TwitterApi::verifyCredentialsSuccessful, this, &AccountModel::handleVerifyCredentialsSuccessful);
 }
 
 QVariant AccountModel::data(const QModelIndex &index, int role) const {
@@ -83,6 +103,16 @@ QVariantMap AccountModel::getCurrentAccount()
 TwitterApi *AccountModel::getTwitterApi()
 {
     return this->twitterApi;
+}
+
+LocationInformation *AccountModel::getLocationInformation()
+{
+    return this->locationInformation;
+}
+
+Wagnis *AccountModel::getWagnis()
+{
+    return this->wagnis;
 }
 
 void AccountModel::handlePinRequestError(const QString &errorMessage)
